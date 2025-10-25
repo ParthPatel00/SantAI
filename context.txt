@@ -1,0 +1,69 @@
+# 🎁 Gift Expert Agent - Project Context
+
+## 🎯 Project Goal
+Create a Fetch.ai agent called "gift-expert" that responds to any message starting with "@" with the phrase "Hey, I'm a gift expert" for ASI:One integration.
+
+## 🏗️ Architecture Overview
+- **Local Development**: Agent runs on localhost:8001
+- **Public Access**: ngrok tunnel provides public URL
+- **Agentverse Integration**: Agent registered with Fetch.ai's Agentverse platform
+- **ASI:One Integration**: Agent responds to @mentions in ASI:One chat
+
+## 🔧 Technical Stack
+- **Framework**: Fetch.ai uAgents
+- **HTTP Server**: FastAPI + Uvicorn (for ASI:One compatibility)
+- **Tunnel**: ngrok (for public access)
+- **Platform**: Agentverse (agent marketplace)
+- **Integration**: ASI:One (chat platform)
+
+## 📁 Key Files
+- `http_gift_agent.py` - Main HTTP-based agent (ASI:One compatible)
+- `gift_expert_agent.py` - Original uAgents-based agent
+- `launch_agent_script.py` - Programmatic registration with Agentverse
+- `deploy_gift_agent.py` - Manual deployment instructions
+
+## 🚀 Current Status
+✅ **Agent Running**: HTTP agent on localhost:8001
+✅ **ngrok Tunnel**: Public URL active
+✅ **Agentverse Registration**: Agent registered (with API key issues)
+❌ **ASI:One Integration**: 403 Forbidden error due to API key
+
+## 🔑 Current Issues
+1. **API Key Problem**: Using placeholder "your_api_key_here" instead of real key
+2. **403 Forbidden**: ASI:One can't access agent due to registration issues
+3. **Credentials**: Need real AGENTVERSE_KEY from agentverse.ai
+
+## 🎯 Agent Behavior
+- **@mentions**: Responds with "Hey, I'm a gift expert"
+- **Gift queries**: Provides gift recommendations
+- **Empty messages**: Responds with default greeting
+- **Any format**: Handles various message formats from ASI:One
+
+## 🌐 Endpoints
+- **Primary**: `https://geostatic-sang-hoverfly.ngrok-free.dev/submit`
+- **Fallback**: `https://geostatic-sang-hoverfly.ngrok-free.dev/`
+- **Local**: `http://127.0.0.1:8001/submit`
+
+## 🔧 Environment Variables Needed
+- `AGENTVERSE_KEY` - Real API key from agentverse.ai
+- `AGENT_SEED_PHRASE` - "gift-expert-seed-2025-parth-sakshi-devam"
+
+## 🎁 Agent Features
+- **Smart Responses**: Context-aware gift recommendations
+- **Flexible Input**: Handles any message format
+- **ASI:One Ready**: Optimized for @mention integration
+- **Error Handling**: Graceful responses to empty/invalid messages
+
+## 🚀 Next Steps
+1. Get real API key from agentverse.ai
+2. Update AGENTVERSE_KEY environment variable
+3. Re-register agent with proper credentials
+4. Test with ASI:One @gift-expert hello
+5. Verify response: "Hey, I'm a gift expert"
+
+## 📊 Agent Details
+- **Name**: gift-expert
+- **Address**: agent1qgfvp4ks356mxug5qcgg7mwfl8tql3vkv6r6sqspt4yp49ghanuayhdhnwn
+- **Wallet**: fetch18w99uw73n56mktqxp2248lmsesppmyzl4sfvdn
+- **Port**: 8001
+- **Seed**: gift-expert-seed-2025-parth-sakshi-devam
