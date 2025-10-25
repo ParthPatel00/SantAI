@@ -1,146 +1,334 @@
-# Gift Agent - uAgent Framework Implementation
+# 🎁 Gift Expert Agent
 
-This is a comprehensive Gift Agent implementation using the uAgent framework and Groq LLM. The agent helps users find perfect gifts by collecting preferences, suggesting categories, and recommending specific items.
+A sophisticated AI-powered gift recommendation agent built on the uAgents framework that helps users find the perfect gift for any occasion. The agent uses advanced LLM capabilities with Groq API and integrates with real-time Amazon product search to provide personalized gift recommendations.
 
-## Features
+## 🎯 Purpose
 
-### Step 1: Interactive Preference Collection
-- Collects occasion, preferences, and budget from users
-- Provides relevant gift categories based on user input
-- Offers "surprise me" option for random category selection
-- Allows users to request additional categories
+The Gift Expert Agent is designed to solve the common problem of finding the right gift by:
 
-### Step 2: Shopping Agent Integration
-- Calls shopping agent with four parameters: occasion, budget, preferences, and category
-- Shopping agent searches multiple marketplaces
-- Results are sorted and stored in global memory
+- **Intelligently collecting user preferences** through natural conversation
+- **Understanding context** like occasion, recipient, interests, and budget
+- **Providing personalized recommendations** from real Amazon products
+- **Guiding users through the entire gift selection process** with an intuitive chat interface
 
-### Step 3: Gift Recommendation & Selection
-- Displays top 5 gift recommendations
-- Users can select a gift, request more options, or update preferences
-- Handles preference updates and refreshes recommendations
+## ✨ Key Functionalities
 
-### Step 4: Payment Integration (Placeholder)
-- Ready for payment agent integration
-- Selected gift information is prepared for payment processing
+### 🧠 Intelligent Conversation Management
 
-## File Structure
+- **Context-aware parameter extraction** using advanced LLM prompts
+- **Global parameter store** that maintains conversation context across interactions
+- **Smart parameter validation** that only updates missing information
+- **Natural language processing** for understanding user intent and preferences
+
+### 🎯 Preference Collection & Validation
+
+- **Occasion detection**: Birthday, anniversary, wedding, promotion, graduation, etc.
+- **Recipient identification**: Mother, father, friend, boss, girlfriend, boyfriend, etc.
+- **Interest extraction**: Hobbies, preferences, interests, lifestyle choices
+- **Budget parsing**: Handles ranges ($50-100), minimums (under $50), maximums ($100+)
+
+### 🛍️ Real-time Product Search
+
+- **OpenWeb Ninja Amazon Data API integration** for live product data
+- **Intelligent search query building** from user preferences
+- **Price filtering** based on user budget constraints
+- **Product ranking** by relevance and user preferences
+
+### 💬 Dynamic Conversation Flow
+
+- **State management** across conversation stages
+- **Category suggestions** based on occasion and preferences
+- **Interactive selection** with numbered options
+- **Follow-up questions** for missing information
+- **Error handling** with graceful fallbacks
+
+### 🎁 Gift Recommendation Engine
+
+- **Top 5 personalized recommendations** with detailed reasoning
+- **Product information** including price, rating, availability, and links
+- **Category-based filtering** for relevant gift types
+- **Budget-optimized suggestions** within user's price range
+
+## 🏗️ Architecture
+
+### Core Components
 
 ```
-├── agent.py                          # Main agent implementation
-├── llm_service.py                    # Groq LLM integration and prompts
-├── models.py                         # Data models and structures
-├── global_memory.py                  # Global memory system
-├── conversation_flow.py              # Conversation flow management
-├── shopping_agent_interface.py       # Shopping agent integration
+├── agent.py                          # Main uAgent implementation
+├── conversation_flow.py              # Conversation state management
+├── llm_service.py                    # Groq LLM integration & prompts
+├── global_parameters.py              # Global parameter store
+├── global_memory.py                  # Conversation memory system
+├── shopping_agent_interface.py       # Amazon API integration
+├── models.py                         # Data models & structures
 ├── requirements.txt                  # Python dependencies
-└── README.md                         # This file
+└── env_template.txt                  # Environment configuration
 ```
 
-## Setup Instructions
+### Data Flow
 
-1. **Install Dependencies**
+1. **User Input** → Conversation Flow Manager
+2. **Parameter Extraction** → LLM Service (Groq)
+3. **Validation** → Global Parameter Store
+4. **Product Search** → Shopping Agent Interface
+5. **Recommendations** → User Display
+6. **Selection** → Memory Storage
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.8+
+- Groq API key
+- OpenWeb Ninja API key (for Amazon product search)
+
+### Installation
+
+1. **Clone the repository**
+
    ```bash
-   pip install -r requirements.txt
+   git clone <repository-url>
+   cd SantAI
    ```
 
-2. **Set Environment Variables**
-   Create a `.env` file with:
-   ```
-   GROQ_API_KEY=your-groq-api-key-here
-   ```
+2. **Create virtual environment**
 
-3. **Run the Agent**
    ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   pip install -r Gift-expert/requirements.txt
+   ```
+
+4. **Configure environment**
+
+   ```bash
+   cp Gift-expert/env_template.txt .env
+   # Edit .env with your API keys
+   ```
+
+5. **Run the agent**
+   ```bash
+   cd Gift-expert
    python agent.py
    ```
 
-## Key Components
+## 🔧 Configuration
 
-### LLM Service (`llm_service.py`)
-- Handles all Groq LLM interactions
-- Manages prompt templates for different conversation stages
-- Extracts user preferences and generates responses
+### Environment Variables
 
-### Conversation Flow (`conversation_flow.py`)
-- Manages the complete conversation flow
-- Handles state transitions between different stages
-- Integrates with shopping agent and recommendation system
+Create a `.env` file with the following variables:
 
-### Global Memory (`global_memory.py`)
-- Thread-safe storage for gift search results
-- Manages user contexts and conversation history
-- Provides data persistence across conversation stages
+```env
+# Required API Keys
+GROQ_API_KEY=your-groq-api-key-here
+OPENWEB_NINJA_API_KEY=your-openweb-ninja-api-key-here
 
-### Data Models (`models.py`)
-- Defines data structures for user preferences, gift items, and recommendations
-- Includes conversation state management
-- Provides type safety and data validation
+# Agent Configuration
+AGENT_SEED=agent-seed-2025-parth-sakshi-devam-new
+AGENT_PORT=8000
+AGENT_NAME=Gift-Expert
 
-## Usage Flow
+# LLM Configuration
+GROQ_MODEL=llama-3.1-8b-instant
 
-1. **User starts conversation** → Agent welcomes and asks for preferences
-2. **User provides input** → Agent extracts occasion, preferences, budget
-3. **Agent shows categories** → User selects category or asks for more options
-4. **Shopping agent called** → Searches marketplaces and stores results
-5. **Agent shows recommendations** → Top 5 gifts displayed with reasoning
-6. **User selects gift** → Agent prepares for payment integration
+# Optional Settings
+DEBUG_MODE=false
+LOG_LEVEL=INFO
+```
 
-## Integration Points
+### API Keys Setup
 
-### Shopping Agent Integration
-The `shopping_agent_interface.py` provides a placeholder for shopping agent integration. To connect with an actual shopping agent:
+1. **Groq API Key**: Get from [Groq Console](https://console.groq.com/keys)
+2. **OpenWeb Ninja API Key**: Get from [OpenWeb Ninja](https://openwebninja.com/)
 
-1. Set the shopping agent address
-2. Implement the `call_shopping_agent` method
-3. Define the message format for shopping requests
+## 💬 Usage Guidelines
 
-### Payment Agent Integration
-The system is ready for payment agent integration. When a user selects a gift, the selected gift information is stored and can be passed to a payment agent.
+### Starting a Conversation
 
-## Customization
+The agent welcomes users with a friendly greeting and asks for:
 
-### Adding New Gift Categories
-Modify the `get_gift_categories` method in `llm_service.py` to include new categories.
+- **Occasion**: Birthday, anniversary, wedding, etc.
+- **Recipient**: Who the gift is for
+- **Preferences**: Interests, hobbies, likes
+- **Budget**: Price range or specific amount
 
-### Modifying Conversation Flow
-Update the state handling methods in `conversation_flow.py` to customize the conversation flow.
+### Example Conversation Flow
 
-### Changing LLM Model
-Modify the `model` parameter in the `LLMService` class constructor.
+```
+User: "I need help finding a gift for my friend's birthday"
+Agent: "Perfect! A birthday gift for your friend - that's thoughtful! 🎁
+        I'm getting a good sense of what you're looking for! Just need a couple more details:
+        • What are their preferences? (hobbies, interests, favorite things, etc.)
+        • What's your budget? (e.g., 50-100, under $50, $100+)"
 
-## Error Handling
+User: "She likes hiking, and my budget is around $50 - $100"
+Agent: "Perfect! I'll keep your budget of $50-100 in mind! 💵
+        Based on hiking and your budget, here are the categories I think would work best:
+        1. Outdoor Gear & Equipment
+        2. Hiking Accessories
+        3. Adventure Books & Guides
+        4. Fitness & Wellness
+        5. Nature Photography
+        What would you like to do?"
+```
 
-The system includes comprehensive error handling:
-- LLM API errors are caught and handled gracefully
-- User input parsing errors are managed
-- Conversation state errors are handled with fallbacks
+### Interaction Options
 
-## Future Enhancements
+- **Select by number**: Choose from numbered category options
+- **Say "surprise me"**: Let the agent pick a random category
+- **Ask for "more options"**: Get additional category suggestions
+- **Provide more details**: Share additional preferences or constraints
 
-1. **Real Shopping Agent Integration**: Replace mock data with actual marketplace APIs
-2. **Payment Agent Integration**: Complete the payment flow
-3. **User Authentication**: Add user account management
-4. **Gift History**: Track user's gift selection history
-5. **Advanced Filtering**: Add more sophisticated filtering options
-6. **Multi-language Support**: Add support for multiple languages
+## 🔍 Advanced Features
 
-## Testing
+### Smart Parameter Extraction
 
-The system includes mock data for testing without external dependencies. To test:
+- **Context preservation**: Maintains conversation history across interactions
+- **Incremental updates**: Only asks for truly missing information
+- **Validation logic**: Prevents overwriting already-collected data
+- **Natural language understanding**: Handles various input formats
 
-1. Run the agent
+### Real-time Product Integration
+
+- **Live Amazon data**: Real product availability and pricing
+- **Intelligent filtering**: Budget and preference-based product selection
+- **Product details**: Complete information including ratings and reviews
+- **Direct purchase links**: Seamless transition to Amazon for purchase
+
+### Error Handling & Recovery
+
+- **API failure handling**: Graceful degradation when services are unavailable
+- **Input validation**: Robust parsing of user preferences and budget ranges
+- **Conversation recovery**: Ability to restart or modify preferences mid-conversation
+- **Debug logging**: Comprehensive logging for troubleshooting
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+Gift-expert/
+├── agent.py                    # Main agent with uAgent framework
+├── conversation_flow.py        # Conversation state management
+├── llm_service.py             # Groq LLM integration
+├── global_parameters.py       # Global parameter store
+├── global_memory.py           # Memory management
+├── shopping_agent_interface.py # Amazon API integration
+├── models.py                  # Data models
+├── requirements.txt           # Dependencies
+├── env_template.txt           # Environment template
+└── README.md                  # Documentation
+```
+
+### Key Classes
+
+- **`ConversationFlowManager`**: Manages conversation states and user interactions
+- **`LLMService`**: Handles all Groq API interactions and prompt management
+- **`GlobalParameters`**: Maintains persistent conversation context
+- **`ShoppingAgentInterface`**: Integrates with OpenWeb Ninja Amazon API
+- **`UserPreferences`**: Data model for user preferences and gift requirements
+
+### Adding New Features
+
+1. **New Gift Categories**: Modify `get_gift_categories()` in `llm_service.py`
+2. **Additional APIs**: Extend `shopping_agent_interface.py`
+3. **New Conversation States**: Update `ConversationState` enum in `models.py`
+4. **Enhanced Prompts**: Modify prompts in `llm_service.py`
+
+## 🧪 Testing
+
+### Manual Testing
+
+1. Start the agent: `python agent.py`
 2. Connect via ASI:One or another agent
-3. Follow the conversation flow with test inputs
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Groq API Key Error**: Ensure `GROQ_API_KEY` is set in environment variables
-2. **Import Errors**: Ensure all dependencies are installed
-3. **Agent Connection Issues**: Check agent address and network connectivity
+3. Follow conversation flow with test inputs
+4. Verify parameter extraction and product recommendations
 
 ### Debug Mode
 
-Enable debug logging by modifying the agent configuration in `agent.py`.
+Enable debug logging by setting `DEBUG_MODE=true` in your `.env` file.
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **"GROQ_API_KEY not found"**
+
+   - Ensure `.env` file exists with valid Groq API key
+   - Check file permissions and location
+
+2. **"403 Forbidden" from Amazon API**
+
+   - Verify OpenWeb Ninja API key is correct
+   - Check API key permissions and quotas
+
+3. **"Address already in use"**
+
+   - Kill existing processes: `lsof -ti:8000 | xargs kill -9`
+   - Or change port in agent configuration
+
+4. **Import errors**
+   - Ensure virtual environment is activated
+   - Install all dependencies: `pip install -r requirements.txt`
+
+### Debug Steps
+
+1. Check environment variables are loaded correctly
+2. Verify API keys are valid and have proper permissions
+3. Review debug logs for specific error messages
+4. Test individual components (LLM, API calls) separately
+
+## 🔮 Future Enhancements
+
+### Planned Features
+
+- **Multi-language support** for global accessibility
+- **User authentication** and gift history tracking
+- **Advanced filtering** with more sophisticated algorithms
+- **Payment integration** for seamless purchase completion
+- **Social features** for sharing and collaborative gift selection
+
+### Integration Opportunities
+
+- **Payment agents** for complete purchase flow
+- **Calendar integration** for occasion reminders
+- **Social media APIs** for preference learning
+- **Inventory management** for real-time availability
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Contact Information
+
+- **Developer**: Parth Patel
+- **Project**: CalHacks SantAI
+- **Repository**: [GitHub Repository URL]
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+
+## 🙏 Acknowledgments
+
+- **uAgents Framework** for the robust agent infrastructure
+- **Groq** for high-performance LLM inference
+- **OpenWeb Ninja** for real-time Amazon product data
+- **CalHacks** for the hackathon platform and inspiration
+- **OpenAI** for foundational LLM research and development
+
+## 📊 Technical Specifications
+
+- **Framework**: uAgents (Python)
+- **LLM Provider**: Groq (llama-3.1-8b-instant)
+- **Product Data**: OpenWeb Ninja Amazon Data API
+- **Architecture**: Microservices with agent-based communication
+- **Deployment**: Local development with Agentverse integration
+- **Memory**: Thread-safe global parameter store
+- **API Integration**: RESTful with async/await patterns
+
+---
+
+**Built with ❤️ for CalHacks 2025**

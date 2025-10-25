@@ -1,5 +1,5 @@
 from uagents import Agent, Context, Model, Protocol
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from uagents.setup import fund_agent_if_low
 from uagents_core.contrib.protocols.chat import (
@@ -19,7 +19,7 @@ from models import ConversationState
 
 agent = Agent(
     name="Gift-Expert",
-    seed="agent-seed-2025-devam-new",
+    seed="agent-seed-2025-parth-new",
     port=8000,
     mailbox=True,
 )
@@ -36,7 +36,7 @@ chat_proto = Protocol(spec=chat_protocol_spec)
 def create_text_chat(text: str, end_session: bool = False) -> ChatMessage:
     content = [TextContent(type="text", text=text)]
     return ChatMessage(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         msg_id=uuid4(),
         content=content,
         )
@@ -48,7 +48,7 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
    ctx.logger.info(f"Received message from {sender}")
   
    # Always send back an acknowledgement when a message is received
-   await ctx.send(sender, ChatAcknowledgement(timestamp=datetime.utcnow(), acknowledged_msg_id=msg.msg_id))
+   await ctx.send(sender, ChatAcknowledgement(timestamp=datetime.now(timezone.utc), acknowledged_msg_id=msg.msg_id))
 
    # Process each content item inside the chat message
    for item in msg.content:

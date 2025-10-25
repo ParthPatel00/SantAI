@@ -39,8 +39,9 @@ class GlobalMemory:
                     context.preferences.occasion = preferences['occasion']
                 if 'preferences' in preferences:
                     context.preferences.preferences = preferences['preferences']
-                if 'budget' in preferences:
-                    context.preferences.budget = preferences['budget']
+                if 'budget_min' in preferences or 'budget_max' in preferences:
+                    context.preferences.budget_min = preferences.get('budget_min')
+                    context.preferences.budget_max = preferences.get('budget_max')
                 if 'category' in preferences:
                     context.preferences.category = preferences['category']
     
