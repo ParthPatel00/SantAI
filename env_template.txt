@@ -1,0 +1,34 @@
+# Environment Configuration Template
+# Copy this file to .env and fill in your actual values
+
+# Groq API Configuration
+# Get your API key from: https://console.groq.com/keys
+GROQ_API_KEY=your-groq-api-key-here
+
+# Agent Configuration
+AGENT_SEED=agent-seed-2025-parth-sakshi-devam-new
+AGENT_PORT=8000
+AGENT_NAME=Gift-Expert
+
+# LLM Model Configuration
+GROQ_MODEL=llama-3.1-8b-instant
+
+# Shopping Agent Configuration (for future integration)
+SHOPPING_AGENT_ADDRESS=
+SHOPPING_AGENT_TIMEOUT=30
+
+# Payment Agent Configuration (for future integration)
+PAYMENT_AGENT_ADDRESS=
+PAYMENT_AGENT_TIMEOUT=30
+
+# Memory Configuration
+MEMORY_CLEANUP_HOURS=24
+MAX_CONVERSATION_HISTORY=100
+
+# Debug Configuration
+DEBUG_MODE=false
+LOG_LEVEL=INFO
+
+# Development Configuration
+DEVELOPMENT_MODE=true
+MOCK_SHOPPING_AGENT=true
