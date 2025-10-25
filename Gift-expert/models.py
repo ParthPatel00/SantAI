@@ -22,33 +22,39 @@ class ConversationState(Enum):
 class UserPreferences:
     """User preferences for gift selection"""
     occasion: Optional[str] = None
+    recipient: Optional[str] = None
     preferences: Optional[str] = None
-    budget: Optional[str] = None
+    budget_min: Optional[int] = None
+    budget_max: Optional[int] = None
     category: Optional[str] = None
     
     def is_complete(self) -> bool:
         """Check if all required preferences are collected"""
-        # We need at least occasion and budget to proceed
-        # Preferences can be collected later or inferred from categories
+        # We need occasion, recipient, preferences, and budget to proceed
         return all([
             self.occasion is not None,
-            self.budget is not None
+            self.recipient is not None,
+            self.preferences is not None,
+            self.budget_min is not None or self.budget_max is not None
         ])
     
     def is_fully_complete(self) -> bool:
         """Check if all preferences including specific preferences are collected"""
         return all([
             self.occasion is not None,
+            self.recipient is not None,
             self.preferences is not None,
-            self.budget is not None
+            self.budget_min is not None or self.budget_max is not None
         ])
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for LLM processing"""
         return {
             "occasion": self.occasion,
+            "recipient": self.recipient,
             "preferences": self.preferences,
-            "budget": self.budget,
+            "budget_min": self.budget_min,
+            "budget_max": self.budget_max,
             "category": self.category
         }
 

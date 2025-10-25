@@ -5,6 +5,10 @@
 # Get your API key from: https://console.groq.com/keys
 GROQ_API_KEY=your-groq-api-key-here
 
+# OpenWeb Ninja API Configuration
+# Get your API key from: https://openwebninja.com/
+OPENWEB_NINJA_API_KEY=your-openweb-ninja-api-key-here
+
 # Agent Configuration
 AGENT_SEED=agent-seed-2025-parth-sakshi-devam-new
 AGENT_PORT=8000

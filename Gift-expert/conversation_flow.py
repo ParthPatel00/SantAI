@@ -7,6 +7,7 @@ from typing import Dict, Any, List, Optional
 from models import ConversationContext, ConversationState, UserPreferences, GiftItem, GiftRecommendation
 from llm_service import LLMService
 from global_memory import global_memory
+from shopping_agent_interface import shopping_agent_interface
 import uuid
 import asyncio
 
@@ -23,6 +24,9 @@ class ConversationFlowManager:
         """
         Start a new conversation and return the initial response
         """
+        # Reset global parameters for new conversation
+        self.llm_service.reset_global_parameters()
+        
         # Create new conversation context
         context = ConversationContext(
             user_id=user_id,
@@ -63,60 +67,73 @@ class ConversationFlowManager:
     
     async def _handle_initial_input(self, context: ConversationContext, user_input: str) -> str:
         """
-        Handle initial user input and extract preferences intelligently
+        Handle initial user input and extract preferences using global parameters
         """
-        # Extract preferences using LLM with enhanced understanding
+        # Use global parameter approach
         extracted_info = await self.llm_service.get_occasion_and_preferences(user_input)
+        missing_info = extracted_info.get("missing_info", [])
+        is_complete = len(missing_info) == 0
         
-        # Store confidence level for context
-        context.extraction_confidence = extracted_info.get('confidence', 'medium')
         
-        # Update preferences with intelligent defaults
-        if extracted_info.get('occasion'):
-            context.preferences.occasion = extracted_info['occasion']
-        if extracted_info.get('preferences'):
-            context.preferences.preferences = extracted_info['preferences']
-        if extracted_info.get('budget'):
-            context.preferences.budget = extracted_info['budget']
+        # Update context preferences with global parameters
+        context.preferences.occasion = extracted_info.get('occasion')
+        context.preferences.recipient = extracted_info.get('recipient')
+        context.preferences.preferences = extracted_info.get('preferences')
+        context.preferences.budget_min = extracted_info.get('budget_min')
+        context.preferences.budget_max = extracted_info.get('budget_max')
         
-        # For high confidence extractions, be more flexible about completeness
-        if context.extraction_confidence == 'high':
-            # If we have good information, proceed even if not "complete"
-            # We need at least occasion and budget to proceed
-            if context.preferences.occasion and context.preferences.budget:
-                context.state = ConversationState.SELECTING_CATEGORY
-                return await self._show_category_options(context)
-        
-        # Check if we have enough information for standard flow
-        # We need at least occasion and budget to proceed (preferences can be collected later)
-        if context.preferences.occasion and context.preferences.budget:
+        # Check if we have enough information to proceed
+        if is_complete:
             context.state = ConversationState.SELECTING_CATEGORY
             return await self._show_category_options(context)
         else:
+            # Acknowledge what we learned and ask for missing information
+            learned_info = []
+            if extracted_info.get('occasion'):
+                learned_info.append("occasion")
+            if extracted_info.get('recipient'):
+                learned_info.append("recipient")
+            if extracted_info.get('preferences'):
+                learned_info.append("preferences")
+            if extracted_info.get('budget_min') or extracted_info.get('budget_max'):
+                learned_info.append("budget")
+            
+            acknowledgment = ""
+            if learned_info:
+                acknowledgment = self._acknowledge_learned_info(learned_info, extracted_info)
+            
             context.state = ConversationState.COLLECTING_PREFERENCES
             missing_info = extracted_info.get('missing_info', [])
-            return await self._ask_for_missing_info(context, missing_info)
+            
+            if acknowledgment:
+                return f"{acknowledgment}\n\n{await self._ask_for_missing_info(context, missing_info)}"
+            else:
+                return await self._ask_for_missing_info(context, missing_info)
     
     async def _handle_preferences_collection(self, context: ConversationContext, user_input: str) -> str:
         """
         Handle collecting missing preferences in a conversational way
         """
-        # Extract preferences from user input
+        # Use global parameter approach
         extracted_info = await self.llm_service.get_occasion_and_preferences(user_input)
         
-        # Store confidence level
-        context.extraction_confidence = extracted_info.get('confidence', 'medium')
+        
+        # Update context preferences with global parameters
+        context.preferences.occasion = extracted_info.get('occasion')
+        context.preferences.recipient = extracted_info.get('recipient')
+        context.preferences.preferences = extracted_info.get('preferences')
+        context.preferences.budget_min = extracted_info.get('budget_min')
+        context.preferences.budget_max = extracted_info.get('budget_max')
         
         # Track what we learned
         learned_info = []
         if extracted_info.get('occasion'):
-            context.preferences.occasion = extracted_info['occasion']
             learned_info.append("occasion")
+        if extracted_info.get('recipient'):
+            learned_info.append("recipient")
         if extracted_info.get('preferences'):
-            context.preferences.preferences = extracted_info['preferences']
             learned_info.append("preferences")
-        if extracted_info.get('budget'):
-            context.preferences.budget = extracted_info['budget']
+        if extracted_info.get('budget_min') or extracted_info.get('budget_max'):
             learned_info.append("budget")
         
         # Acknowledge what we learned before asking for more
@@ -151,7 +168,6 @@ class ConversationFlowManager:
         
         if selection_result['action'] == 'select' and selection_result['selected_option']:
             selected = selection_result['selected_option']
-            confidence = selection_result.get('confidence', 'medium')
             
             if selected == "surprise me":
                 # Select random category
@@ -162,12 +178,27 @@ class ConversationFlowManager:
                 context.preferences.category = selected
                 context.add_message("assistant", f"Great choice! I'll look for gifts in the '{selected}' category...")
             else:
-                # Try to find a close match
-                close_match = self._find_close_category_match(selected, context.available_categories)
-                if close_match:
-                    context.preferences.category = close_match
-                    context.add_message("assistant", f"I think you meant '{close_match}' - great choice! Let me find some gifts...")
-                else:
+                # Handle number selections (e.g., "5" -> 5th category)
+                try:
+                    if selected.isdigit():
+                        index = int(selected) - 1
+                        if 0 <= index < len(context.available_categories):
+                            selected_category = context.available_categories[index]
+                            context.preferences.category = selected_category
+                            context.add_message("assistant", f"Perfect! I'll look for gifts in the '{selected_category}' category...")
+                        else:
+                            return ("That number is not valid. Please choose a number between 1 and " + 
+                                   str(len(context.available_categories)) + " or select a category by name.")
+                    else:
+                        # Try to find a close match
+                        close_match = self._find_close_category_match(selected, context.available_categories)
+                        if close_match:
+                            context.preferences.category = close_match
+                            context.add_message("assistant", f"I think you meant '{close_match}' - great choice! Let me find some gifts...")
+                        else:
+                            return ("I didn't quite understand your selection. Could you please choose from the available options "
+                                   "or say 'surprise me' if you'd like me to pick for you?")
+                except ValueError:
                     return ("I didn't quite understand your selection. Could you please choose from the available options "
                            "or say 'surprise me' if you'd like me to pick for you?")
             
@@ -233,51 +264,41 @@ class ConversationFlowManager:
         """
         Ask user for missing information in a natural, conversational way
         """
-        # Get confidence level from the extraction
-        confidence = getattr(context, 'extraction_confidence', 'medium')
         
         # Count how many pieces of info we're missing
         missing_count = len(missing_info)
         
+        # Build dynamic message based on what's actually missing
+        questions = []
+        
+        if "occasion" in missing_info:
+            questions.append("• **What's the occasion?** (birthday, anniversary, holiday, just because, etc.)")
+        
+        if "recipient" in missing_info:
+            questions.append("• **Who is it for?** (friend, family member, partner, colleague, etc.)")
+        
+        if "preferences" in missing_info:
+            questions.append("• **What are their preferences?** (hobbies, interests, favorite things, etc.)")
+        
+        if "budget_min" in missing_info or "budget_max" in missing_info:
+            questions.append("• **What's your budget?** (e.g., $50-100, under $50, $100+)")
+        
         if missing_count >= 3:
             # Missing most information - be very friendly and encouraging
             return ("I'm excited to help you find the perfect gift! 🎁\n\n"
-                   "To get started, could you tell me:\n\n"
-                   "• **What's the occasion?** (birthday, anniversary, holiday, just because, etc.)\n"
-                   "• **Who is it for?** (friend, family member, partner, colleague, etc.)\n"
-                   "• **What's your budget?** (any range that works for you)\n\n"
-                   "Don't worry if you're not sure about everything - we can figure it out together! 😊")
+                   "To get started, could you tell me:\n\n" + 
+                   "\n".join(questions) + 
+                   "\n\nDon't worry if you're not sure about everything - we can figure it out together! 😊")
         
         elif missing_count == 2:
             # Missing two pieces - be conversational
-            if 'occasion' in missing_info and 'preferences' in missing_info:
-                return ("Great start! I can help you find something perfect. Could you tell me:\n\n"
-                       "• **What's the special occasion?** (birthday, anniversary, holiday, etc.)\n"
-                       "• **Tell me about the person** - what do they like? (hobbies, interests, personality, etc.)")
-            
-            elif 'occasion' in missing_info and 'budget' in missing_info:
-                return ("I'm getting a good sense of what you're looking for! Just need a couple more details:\n\n"
-                       "• **What's the occasion?** (birthday, anniversary, holiday, etc.)\n"
-                       "• **What's your budget range?** (any range that works for you)")
-            
-            elif 'preferences' in missing_info and 'budget' in missing_info:
-                return ("Perfect! I know the occasion. Now tell me:\n\n"
-                       "• **What does this person like?** (interests, hobbies, favorite things, etc.)\n"
-                       "• **What's your budget?** (any range that works for you)")
+            return ("I'm getting a good sense of what you're looking for! Just need a couple more details:\n\n" + 
+                   "\n".join(questions))
         
         elif missing_count == 1:
             # Missing one piece - be specific and helpful
-            if 'occasion' in missing_info:
-                return ("I love what you've told me so far! Just one more thing - what's the special occasion? "
-                       "(birthday, anniversary, holiday, graduation, or just a thoughtful surprise)")
-            
-            elif 'preferences' in missing_info:
-                return ("Perfect! I know the occasion and budget. Now tell me about the person - "
-                       "what do they enjoy? (hobbies, interests, favorite colors, personality, etc.)")
-            
-            elif 'budget' in missing_info:
-                return ("Almost there! What's your budget range? "
-                       "(under $50, $50-100, $100-200, or any range that works for you)")
+            return ("I love what you've told me so far! Just one more thing - " + 
+                   questions[0].replace("• **", "").replace("**", "").replace("?", "").lower() + "?")
         
         else:
             return ("I'm getting a great sense of what you're looking for! "
@@ -291,7 +312,8 @@ class ConversationFlowManager:
         categories = await self.llm_service.get_gift_categories(
             context.preferences.occasion,
             context.preferences.preferences,
-            context.preferences.budget
+            context.preferences.budget_min,
+            context.preferences.budget_max
         )
         
         context.available_categories = categories
@@ -299,7 +321,7 @@ class ConversationFlowManager:
         # Create personalized introduction
         occasion = context.preferences.occasion or "this special occasion"
         preferences = context.preferences.preferences or "what you're looking for"
-        budget = context.preferences.budget or "your budget"
+        budget = f"${context.preferences.budget_min}-${context.preferences.budget_max}" if context.preferences.budget_min and context.preferences.budget_max else "your budget"
         
         # Format response with personality
         response = f"Perfect! I've got some great ideas for {occasion}! 🎁\n\n"
@@ -325,7 +347,7 @@ class ConversationFlowManager:
         additional_categories = await self.llm_service.get_additional_categories(
             context.preferences.occasion,
             context.preferences.preferences,
-            context.preferences.budget,
+            f"${context.preferences.budget_min}-${context.preferences.budget_max}" if context.preferences.budget_min and context.preferences.budget_max else "your budget",
             context.available_categories
         )
         
@@ -348,31 +370,63 @@ class ConversationFlowManager:
     
     async def _call_shopping_agent(self, context: ConversationContext) -> str:
         """
-        Call shopping agent to find gifts in a conversational way
+        Call shopping agent to find gifts with validation
         """
-        # Generate search ID
-        search_id = str(uuid.uuid4())
+        # Validate requirements first
+        is_valid, missing_requirements = shopping_agent_interface.validate_requirements(context.preferences)
         
-        # Create personalized search message
-        category = context.preferences.category
-        occasion = context.preferences.occasion
-        budget = context.preferences.budget or "your budget"
-        preferences = context.preferences.preferences or "what you're looking for"
+        if not is_valid:
+            # Ask user for missing requirements
+            missing_list = ", ".join(missing_requirements)
+            response = f"I need a bit more information to find the perfect gift for you! 🎁\n\n"
+            response += f"**Missing information:** {missing_list}\n\n"
+            
+            if "occasion" in missing_requirements:
+                response += "• **What's the occasion?** (birthday, anniversary, holiday, etc.)\n"
+            if "recipient" in missing_requirements:
+                response += "• **Who is the gift for?** (mother, father, girlfriend, boyfriend, friend, etc.)\n"
+            if "preferences" in missing_requirements:
+                response += "• **What are your preferences?** (colors, brands, interests, etc.)\n"
+            if "budget_min" in missing_requirements or "budget_max" in missing_requirements:
+                response += "• **What's your budget?** (e.g., $50-100, under $50, $100+)\n"
+            
+            response += "\nPlease provide the missing information so I can search for the perfect gift!"
+            
+            context.add_message("assistant", response)
+            return response
         
-        response = f"Excellent choice! I love the {category} idea for {occasion}! 🎁\n\n"
-        response += f"Let me search through multiple marketplaces to find the perfect {category.lower()} gifts that match {preferences} and fit {budget}...\n\n"
-        response += "🔍 **Searching for you now...**\n"
-        response += "⏳ This might take a moment, but I promise it'll be worth it!\n\n"
-        response += "I'm looking for something that will make this {occasion} truly special! ✨"
+        # All requirements met, call shopping agent
+        try:
+            # Call the real shopping agent
+            products, success, errors = await shopping_agent_interface.call_shopping_agent(context.preferences)
+            
+            if success and products:
+                # Format product recommendations
+                response = f"🎁 **Perfect! I found {len(products)} great gift options for you:**\n\n"
+                
+                for i, product in enumerate(products[:5], 1):  # Show top 5 products
+                    response += f"**{i}. {product.name}**\n"
+                    response += f"   💰 Price: {product.price}\n"
+                    response += f"   ⭐ Rating: {product.rating}/5\n"
+                    response += f"   🔗 [View Product]({product.url})\n\n"
+                
+                if len(products) > 5:
+                    response += f"... and {len(products) - 5} more options available!\n\n"
+                
+                response += "Would you like me to search for more options or help you with anything else?"
+                
+            else:
+                response = "I'm sorry, I couldn't find any products matching your criteria. "
+                response += "Could you try adjusting your preferences or budget? I'd be happy to search again!"
+                
+        except Exception as e:
+            response = f"I encountered an error while searching for gifts: {str(e)}. "
+            response += "Please try again or let me know if you'd like to adjust your search criteria."
         
         context.add_message("assistant", response)
-        
-        # Simulate shopping agent call (replace with actual implementation)
-        await self._simulate_shopping_agent_call(context, search_id)
-        
         return response
     
-    async def _simulate_shopping_agent_call(self, context: ConversationContext, search_id: str):
+    # async def _simulate_shopping_agent_call(self, context: ConversationContext, search_id: str):
         """
         Simulate shopping agent call (replace with actual implementation)
         """
@@ -548,30 +602,33 @@ class ConversationFlowManager:
         
         if "occasion" in learned_info:
             occasion = extracted_info.get('occasion', '')
-            if occasion.lower() in ['birthday', 'anniversary', 'holiday', 'graduation']:
+            if occasion and occasion.lower() != 'general':
                 acknowledgments.append(f"Perfect! A {occasion} gift - that's so thoughtful! 🎉")
+        
+        if "recipient" in learned_info:
+            recipient = extracted_info.get('recipient', '')
+            if 'mother' in recipient.lower() or 'mom' in recipient.lower():
+                acknowledgments.append("Aww, something for your mom - that's so sweet! 💕")
+            elif 'girlfriend' in recipient.lower() or 'boyfriend' in recipient.lower():
+                acknowledgments.append("How romantic! I'll help you find something special! 💖")
+            elif 'friend' in recipient.lower():
+                acknowledgments.append("A gift for a friend - that's wonderful! 👫")
             else:
-                acknowledgments.append(f"Great! A {occasion} gift - I love that! 😊")
+                acknowledgments.append(f"Perfect! A gift for {recipient} - that's thoughtful! 🎁")
         
         if "preferences" in learned_info:
             preferences = extracted_info.get('preferences', '')
-            if 'mother' in preferences.lower() or 'mom' in preferences.lower():
-                acknowledgments.append("Aww, something for your mom - that's so sweet! 💕")
-            elif 'girlfriend' in preferences.lower() or 'boyfriend' in preferences.lower():
-                acknowledgments.append("How romantic! I'll help you find something special! 💖")
-            elif 'friend' in preferences.lower():
-                acknowledgments.append("A gift for a friend - that's wonderful! 👫")
-            else:
-                acknowledgments.append(f"Nice! I can see you're thinking about {preferences} - that's helpful! 👍")
+            acknowledgments.append(f"Nice! I can see you're thinking about {preferences} - that's helpful! 👍")
         
-        if "budget" in learned_info:
-            budget = extracted_info.get('budget', '')
-            if 'under' in budget.lower() or 'affordable' in budget.lower():
-                acknowledgments.append("Smart budgeting! I'll find something great within your range! 💰")
-            elif 'premium' in budget.lower() or 'fancy' in budget.lower():
-                acknowledgments.append("Going all out! I love it - let's find something amazing! ✨")
-            else:
-                acknowledgments.append(f"Perfect! I'll keep your budget of {budget} in mind! 💵")
+        if "budget_min" in learned_info or "budget_max" in learned_info:
+            budget_min = extracted_info.get('budget_min')
+            budget_max = extracted_info.get('budget_max')
+            if budget_min and budget_max:
+                acknowledgments.append(f"Perfect! I'll keep your budget of ${budget_min}-${budget_max} in mind! 💵")
+            elif budget_max:
+                acknowledgments.append(f"Smart budgeting! I'll find something under ${budget_max}! 💰")
+            elif budget_min:
+                acknowledgments.append(f"Going all out! I'll find something ${budget_min}+! ✨")
         
         if len(acknowledgments) == 1:
             return acknowledgments[0]
