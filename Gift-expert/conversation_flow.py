@@ -44,6 +44,19 @@ class ConversationFlowManager:
         """
         Process user input and return appropriate response
         """
+        # Check for gift-sending commands first
+        gift_sending_response = await self._handle_gift_sending_command(user_input)
+        if gift_sending_response:
+            return gift_sending_response
+        
+        # Check if user is selecting a gift for sending (look for number patterns)
+        import re
+        if re.search(r'^\d+$', user_input.strip()):
+            # User entered just a number, check if we have stored gift recommendations
+            gift_selection_response = await self._handle_gift_selection_for_sending(user_input)
+            if gift_selection_response:
+                return gift_selection_response
+        
         context = global_memory.get_user_context(user_id)
         if not context:
             return await self.start_conversation(user_id, user_input)
@@ -593,6 +606,230 @@ class ConversationFlowManager:
                 return category
         
         return None
+    
+    async def _handle_gift_sending_command(self, user_input: str) -> Optional[str]:
+        """
+        Handle gift-sending commands like "@santa clause, send a gift to '@devam'"
+        """
+        import re
+        
+        # Check for gift-sending pattern: various forms of "send a gift to @username"
+        gift_patterns = [
+            r'@santa\s+clause,?\s+send\s+a\s+gift\s+to\s+[\'"]?@?(\w+)[\'"]?',  # @santa clause, send a gift to @devam
+            r'can\s+you\s+send\s+@(\w+)\s+a\s+gift',  # can you send @devam a gift
+            r'send\s+a\s+gift\s+to\s+@(\w+)',  # send a gift to @devam
+            r'send\s+@(\w+)\s+a\s+gift',  # send @devam a gift
+            r'gift\s+for\s+@(\w+)',  # gift for @devam
+        ]
+        
+        match = None
+        for pattern in gift_patterns:
+            match = re.search(pattern, user_input, re.IGNORECASE)
+            if match:
+                break
+        
+        if not match:
+            return None
+        
+        recipient_username = match.group(1)
+        
+        try:
+            # Step 1: Query the recipient's personality agent for preferences
+            recipient_preferences = await self._query_recipient_agent(recipient_username)
+            
+            if not recipient_preferences:
+                return f"🎁 I'd love to send a gift to @{recipient_username}, but I couldn't reach their personality agent. " \
+                       f"Make sure their agent is online and accessible!"
+            
+            # Step 2: Use recipient's preferences to find a gift
+            gift_recommendations = await self._find_gift_for_recipient(recipient_username, recipient_preferences)
+            
+            if not gift_recommendations:
+                return f"🎁 I couldn't find any suitable gifts for @{recipient_username} based on their preferences. " \
+                       f"Let me try with different criteria or you can specify what you'd like to send!"
+            
+            # Step 3: Present gift options and handle selection
+            return await self._present_gift_options_for_sending(recipient_username, gift_recommendations)
+            
+        except Exception as e:
+            return f"🎁 I encountered an error while trying to send a gift to @{recipient_username}: {str(e)}. " \
+                   f"Please try again or let me know if you need help!"
+    
+    async def _query_recipient_agent(self, recipient_username: str) -> Optional[Dict[str, Any]]:
+        """
+        Query the recipient's personality agent for their preferences and gift ideas
+        """
+        try:
+            # Import agent communication module
+            from agent_communication import agent_communication
+            
+            # Check if agent is registered
+            if not agent_communication.is_agent_registered(recipient_username):
+                print(f"❌ No registered agent found for @{recipient_username}")
+                return None
+            
+            # Query the agent for preferences
+            preferences = await agent_communication.query_agent_preferences(recipient_username)
+            
+            if preferences:
+                print(f"✅ Successfully queried preferences from @{recipient_username}")
+                return preferences
+            else:
+                print(f"❌ Failed to get preferences from @{recipient_username}")
+                return None
+            
+        except Exception as e:
+            print(f"Error querying recipient agent: {e}")
+            return None
+    
+    async def _find_gift_for_recipient(self, recipient_username: str, preferences: Dict[str, Any]) -> List[GiftItem]:
+        """
+        Find suitable gifts for the recipient based on their preferences
+        """
+        try:
+            # Create user preferences object from recipient's data
+            from models import UserPreferences
+            
+            recipient_prefs = UserPreferences(
+                occasion="just because",  # Remove occasion filter
+                recipient=recipient_username,
+                preferences=preferences.get("gift_preferences", ""),
+                budget_min=None,  # Remove budget filter
+                budget_max=None,
+                category=None  # Let the system determine category
+            )
+            
+            # Use the shopping agent to find gifts
+            from shopping_agent_interface import shopping_agent_interface
+            gift_items, success, errors = await shopping_agent_interface.call_shopping_agent(recipient_prefs)
+            
+            if success and gift_items:
+                return gift_items[:5]  # Return top 5 gifts
+            else:
+                print(f"❌ No gifts found for @{recipient_username}. API returned: success={success}, items={len(gift_items) if gift_items else 0}")
+                return []
+                
+        except Exception as e:
+            print(f"Error finding gifts for recipient: {e}")
+            return []
+    
+    
+    async def _present_gift_options_for_sending(self, recipient_username: str, gift_recommendations: List[GiftItem]) -> str:
+        """
+        Present gift options for sending to the recipient
+        """
+        if not gift_recommendations:
+            return f"🎁 I couldn't find any suitable gifts for @{recipient_username}. " \
+                   f"Let me try with different preferences or you can tell me what you'd like to send!"
+        
+        # Get recipient preferences for context
+        from agent_communication import agent_communication
+        recipient_preferences = await agent_communication.query_agent_preferences(recipient_username)
+        
+        response = f"🎁 **Perfect! I found some great gift options for @{recipient_username}:**\n\n"
+        
+        if recipient_preferences:
+            response += f"*Based on @{recipient_username}'s interests: {', '.join(recipient_preferences.get('interests', [])[:3])}*\n\n"
+        
+        for i, gift in enumerate(gift_recommendations, 1):
+            response += f"**{i}. {gift.name}**\n"
+            response += f"   💰 Price: {gift.price}\n"
+            response += f"   📝 Description: {gift.description}\n"
+            response += f"   🔗 [View Product]({gift.url})\n\n"
+        
+        response += f"**What would you like to do?**\n"
+        response += f"• **Pick a number (1-{len(gift_recommendations)})** to select a gift for @{recipient_username} 🎯\n"
+        response += f"• **Ask for more options** if you want to see different gifts 🔄\n"
+        response += f"• **Tell me more** about what you'd like to send specifically 💬\n\n"
+        response += f"I'm excited to help you send something special to @{recipient_username}! What catches your eye? 😊"
+        
+        # Store the gift recommendations for this recipient
+        global_memory.store_gift_search_results(f"gift_for_{recipient_username}", gift_recommendations)
+        
+        return response
+    
+    async def _handle_gift_selection_for_sending(self, user_input: str) -> str:
+        """
+        Handle gift selection when sending to a recipient
+        """
+        try:
+            # Find the most recent gift search results
+            recent_recipient = None
+            gift_recommendations = None
+            
+            # Look for stored gift recommendations
+            for search_id, gifts in global_memory._gift_search_results.items():
+                if search_id.startswith("gift_for_"):
+                    recent_recipient = search_id.replace("gift_for_", "")
+                    gift_recommendations = gifts
+                    break
+            
+            if not gift_recommendations or not recent_recipient:
+                return "🎁 I don't have any gift options stored. Please start by saying '@santa clause, send a gift to @username' first!"
+            
+            # Parse user selection
+            import re
+            number_match = re.search(r'(\d+)', user_input)
+            
+            if number_match:
+                selected_index = int(number_match.group(1)) - 1
+                
+                if 0 <= selected_index < len(gift_recommendations):
+                    selected_gift = gift_recommendations[selected_index]
+                    
+                    # Send the gift
+                    success = await self._send_gift_to_recipient(recent_recipient, selected_gift)
+                    
+                    if success:
+                        return f"🎁 **Perfect! I've sent the gift to @{recent_recipient}!**\n\n" \
+                               f"**Gift:** {selected_gift.name}\n" \
+                               f"**Price:** {selected_gift.price}\n" \
+                               f"**Description:** {selected_gift.description}\n" \
+                               f"**Link:** [View on Amazon]({selected_gift.url})\n\n" \
+                               f"@{recent_recipient} has been notified about their gift! 🎉"
+                    else:
+                        return f"🎁 I selected the gift for @{recent_recipient}, but encountered an issue " \
+                               f"completing the purchase. Please try again or contact support."
+                else:
+                    return f"🎁 Please select a number between 1 and {len(gift_recommendations)} for @{recent_recipient}'s gift."
+            else:
+                return f"🎁 Please select a number (1-{len(gift_recommendations)}) to choose a gift for @{recent_recipient}."
+                
+        except Exception as e:
+            return f"🎁 I encountered an error processing your gift selection: {str(e)}. Please try again!"
+    
+    async def _send_gift_to_recipient(self, recipient_username: str, gift: GiftItem) -> bool:
+        """
+        Send a gift to the recipient (simulate purchase and notification)
+        """
+        try:
+            # Import agent communication
+            from agent_communication import agent_communication
+            
+            # In a real implementation, this would:
+            # 1. Process payment through Amazon API
+            # 2. Handle shipping details
+            # 3. Send confirmation to recipient's agent
+            
+            # For now, we'll simulate the process
+            print(f"🎁 Processing gift purchase for @{recipient_username}: {gift.name}")
+            
+            # Simulate purchase processing
+            await asyncio.sleep(2)  # Simulate API call delay
+            
+            # Notify the recipient's agent
+            notification_sent = await agent_communication.notify_gift_sent(recipient_username, gift)
+            
+            if notification_sent:
+                print(f"✅ Gift sent successfully to @{recipient_username}")
+                return True
+            else:
+                print(f"❌ Failed to notify @{recipient_username} about their gift")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error sending gift to @{recipient_username}: {e}")
+            return False
     
     def _acknowledge_learned_info(self, learned_info: List[str], extracted_info: Dict[str, Any]) -> str:
         """

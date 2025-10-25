@@ -53,10 +53,10 @@ class ShoppingAgentInterface:
         if not preferences.preferences:
             missing_requirements.append("preferences")
         
-        # Check for budget (required)
-        if not preferences.budget_min and not preferences.budget_max:
-            missing_requirements.append("budget_min")
-            missing_requirements.append("budget_max")
+        # Check for budget (optional for gift-sending flow)
+        # if not preferences.budget_min and not preferences.budget_max:
+        #     missing_requirements.append("budget_min")
+        #     missing_requirements.append("budget_max")
         
         is_valid = len(missing_requirements) == 0
         return is_valid, missing_requirements
@@ -119,57 +119,19 @@ class ShoppingAgentInterface:
         """
         query_parts = []
         
+        # Add preferences/interest terms first (most important for gift-sending)
+        if preferences.preferences:
+            # Split preferences and add them
+            prefs = preferences.preferences.split(',')
+            for pref in prefs[:2]:  # Limit to 2 preferences to avoid overly long queries
+                query_parts.append(pref.strip())
+        
         # Add category if specified
         if preferences.category:
             query_parts.append(preferences.category)
         
-        # Add recipient-specific terms
-        if preferences.recipient:
-            recipient_terms = {
-                "mother": "for mom",
-                "mom": "for mom", 
-                "mothers": "for mom",
-                "father": "for dad",
-                "dad": "for dad",
-                "fathers": "for dad",
-                "girlfriend": "for girlfriend",
-                "boyfriend": "for boyfriend",
-                "wife": "for wife",
-                "husband": "for husband",
-                "friend": "for friend",
-                "sister": "for sister",
-                "brother": "for brother"
-            }
-            recipient_lower = preferences.recipient.lower()
-            if recipient_lower in recipient_terms:
-                query_parts.append(recipient_terms[recipient_lower])
-            else:
-                query_parts.append(f"for {preferences.recipient}")
-        
-        # Add occasion-specific terms
-        if preferences.occasion:
-            occasion_terms = {
-                "birthday": "birthday gift",
-                "anniversary": "anniversary gift", 
-                "wedding": "wedding gift",
-                "holiday": "holiday gift",
-                "christmas": "christmas gift",
-                "valentine": "valentine gift",
-                "graduation": "graduation gift",
-                "mothers day": "mothers day gift",
-                "fathers day": "fathers day gift"
-            }
-            if preferences.occasion.lower() in occasion_terms:
-                query_parts.append(occasion_terms[preferences.occasion.lower()])
-            else:
-                query_parts.append(f"{preferences.occasion} gift")
-        
-        # Add preferences/interest terms
-        if preferences.preferences:
-            # Split preferences and add them
-            prefs = preferences.preferences.split(',')
-            for pref in prefs[:3]:  # Limit to 3 preferences to avoid overly long queries
-                query_parts.append(pref.strip())
+        # Add a simple "gift" term to make the search more likely to return results
+        query_parts.append("gift")
         
         # Join all parts
         query = " ".join(query_parts)
@@ -178,6 +140,7 @@ class ShoppingAgentInterface:
         if not query.strip():
             query = "gift"
         
+        print(f"🔍 Built search query: '{query}'")
         return query
     
     async def _search_amazon_products(self, query: str, preferences: UserPreferences) -> List[Dict]:
@@ -202,7 +165,7 @@ class ShoppingAgentInterface:
             params = {
                 "query": query,
                 "country": "US",  # Default to US market
-                "sort_by": "relevance"  # Sort by relevance
+                "sort_by": "RELEVANCE"  # Sort by relevance (uppercase required)
             }
             
             # Add price filtering if budget is specified
@@ -220,7 +183,13 @@ class ShoppingAgentInterface:
             
             if response.status_code == 200:
                 data = response.json()
-                return data.get("products", [])
+                # Extract products from the correct path in the response
+                if "data" in data and "products" in data["data"]:
+                    products = data["data"]["products"]
+                else:
+                    products = data.get("products", [])
+                print(f"✅ API call successful! Found {len(products)} products")
+                return products
             else:
                 print(f"❌ API request failed with status {response.status_code}: {response.text}")
                 return []
@@ -298,13 +267,33 @@ class ShoppingAgentInterface:
         
         for product in products:
             try:
-                # Extract product information
-                name = product.get("title", "Unknown Product")
-                price = product.get("price", {}).get("current", "N/A")
-                description = product.get("description", "")
-                url = product.get("url", "")
-                rating = product.get("rating", {}).get("average", 0.0)
-                availability = "In Stock" if product.get("availability", {}).get("in_stock", False) else "Out of Stock"
+                # Extract product information from the actual API response structure
+                name = product.get("product_title", product.get("title", "Unknown Product"))
+                price = product.get("product_price", "N/A")
+                
+                # Build description from available fields
+                description_parts = []
+                if product.get("product_byline"):
+                    description_parts.append(product["product_byline"])
+                if product.get("sales_volume"):
+                    description_parts.append(f"Sales: {product['sales_volume']}")
+                if product.get("delivery"):
+                    description_parts.append(f"Delivery: {product['delivery'][:50]}...")
+                description = " | ".join(description_parts) if description_parts else "Great gift option"
+                
+                url = product.get("product_url", "")
+                
+                # Extract rating
+                rating_str = product.get("product_star_rating", "0")
+                try:
+                    rating = float(rating_str)
+                except:
+                    rating = 0.0
+                
+                # Determine availability
+                availability = "In Stock"
+                if product.get("product_availability"):
+                    availability = product["product_availability"]
                 
                 # Create unique ID
                 product_id = product.get("asin", str(uuid.uuid4()))
@@ -322,9 +311,11 @@ class ShoppingAgentInterface:
                 )
                 
                 gift_items.append(gift_item)
+                # print(f"📦 Converted product: {name} - ${price}")  # Commented out for cleaner output
                 
             except Exception as e:
                 print(f"⚠️  Error converting product: {str(e)}")
+                print(f"   Product data: {product}")
                 continue
         
         return gift_items
