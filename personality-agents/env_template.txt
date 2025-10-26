@@ -1,0 +1,15 @@
+# SantAI Personality Agents Configuration
+
+# Groq API Configuration
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=llama-3.1-8b-instant
+
+# Agent Configuration
+AGENT_DEVAM_SEED=agent-devam-nature-guided-2025
+AGENT_SAKSHI_SEED=agent-sakshi-mysterious-creative-2025
+AGENT_PARTH_SEED=agent-parth-bold-adventurous-2025
+
+# Agent Ports (make sure they don't conflict with other agents)
+AGENT_DEVAM_PORT=8002
+AGENT_SAKSHI_PORT=8003
+AGENT_PARTH_PORT=8004

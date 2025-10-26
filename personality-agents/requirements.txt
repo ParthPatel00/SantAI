@@ -1,0 +1,4 @@
+uagents>=0.4.0
+uagents-core>=0.3.11
+groq>=0.4.0
+python-dotenv>=1.0.0
