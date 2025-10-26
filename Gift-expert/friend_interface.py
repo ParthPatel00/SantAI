@@ -26,6 +26,7 @@ class FriendInterface:
         self.personality = {}  # Store personality responses
         self.preferences = {}  # Store preferences responses
         self.original_user = None  # Store the original user who requested the gift
+        self.link = "https://sant-ai-sd7k.vercel.app/"
     
     async def communicate_with_friend(self, friend_name: str, ctx) -> str:
         """
@@ -142,7 +143,7 @@ class FriendInterface:
                 for i, gift in enumerate(gift_recommendations[:3], 1):
                     response_text += f"{i}. **{gift.name}** - ${gift.price}\n"
                     response_text += f"   {gift.description}\n"
-                    response_text += f"   [View on Amazon]({gift.url})\n\n"
+                    response_text += f"   [Buy via Stripe]({self.link})\n\n"
                 return response_text
             else:
                 return f"❌ No gifts found for {friend_name.title()}. Please try again."
