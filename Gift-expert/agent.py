@@ -48,8 +48,11 @@ def create_text_chat(text: str, end_session: bool = False) -> ChatMessage:
 async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
    ctx.logger.info(f"Received message from {sender}")
   
-   # Always send back an acknowledgement when a message is received
-   await ctx.send(sender, ChatAcknowledgement(timestamp=datetime.now(timezone.utc), acknowledged_msg_id=msg.msg_id))
+   # Check if this is a friend agent before sending acknowledgment
+   friend_agent_addresses = list(friend_interface.agent_addresses.values())
+   if sender not in friend_agent_addresses:
+       # Only send acknowledgment to regular users, not friend agents
+       await ctx.send(sender, ChatAcknowledgement(timestamp=datetime.now(timezone.utc), acknowledged_msg_id=msg.msg_id))
 
    # Process each content item inside the chat message
    for item in msg.content:
@@ -73,6 +76,20 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
            
            # Check if this is a response from a friend agent
            friend_agent_addresses = list(friend_interface.agent_addresses.values())
+           ctx.logger.info(f"🔍 DEBUG: Checking if sender {sender} is in friend addresses: {friend_agent_addresses}")
+           
+           # Log all incoming messages for debugging
+           ctx.logger.info(f"🔍 DEBUG: Received message from {sender} with content: {item.text[:100]}...")
+           
+           # Check specifically for Parth's agent
+           if sender == "agent1q0ammultdzelux7l6u72wnwh8ze8ne6wmsqfu4dygkah8ada2gqhqyrnzsf":
+               ctx.logger.info(f"🔍 DEBUG: This is Parth's agent! Processing message...")
+               ctx.logger.info(f"🔍 DEBUG: Parth's message content: {item.text}")
+           
+           # Log any message that contains "parth" in the content
+           if "parth" in item.text.lower():
+               ctx.logger.info(f"🔍 DEBUG: Message contains 'parth': {item.text[:100]}...")
+           
            if sender in friend_agent_addresses:
                # This is a response from a friend agent
                ctx.logger.info(f"Received response from friend agent: {sender}")
@@ -84,26 +101,71 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
                        friend_name = name
                        break
                
+                    # Process all responses from friend agents
+               
                if friend_name:
+                   
                    # Determine response type based on content
                    response_text = item.text.lower()
-                   if "personality" in response_text or "i am" in response_text or "my personality" in response_text:
-                       friend_interface.handle_friend_response(friend_name, item.text, "personality")
+                   
+                   # Classify responses by content, not order
+                   friend_name_lower = friend_name.lower()
+                   
+                   # Determine if this is personality or preferences based on content
+                   response_text = item.text.lower()
+                   is_personality_response = (
+                       "personality" in response_text or 
+                       "represents" in response_text or
+                       "spirit" in response_text or
+                       "character" in response_text or
+                       "nature" in response_text or
+                       len(item.text) > 100  # Longer responses are usually personality
+                   )
+                   
+                   is_preferences_response = (
+                       "sports" in response_text or
+                       "gear" in response_text or
+                       "equipment" in response_text or
+                       "tools" in response_text or
+                       "activities" in response_text or
+                       "experiences" in response_text or
+                       len(item.text) < 100  # Shorter responses are usually preferences
+                   )
+                   
+                   ctx.logger.info(f"🔍 DEBUG: {friend_name} - Is personality: {is_personality_response}, Is preferences: {is_preferences_response}")
+                   
+                   if is_personality_response and not (friend_name_lower in friend_interface.personality and friend_interface.personality[friend_name_lower] is not None):
+                       # Store as personality
+                       friend_interface.store_personality(friend_name, item.text)
                        ctx.logger.info(f"Stored personality response from {friend_name}")
-                   elif "gift" in response_text or "materialistic" in response_text or "enjoy" in response_text:
-                       friend_interface.handle_friend_response(friend_name, item.text, "gift_preferences")
-                       ctx.logger.info(f"Stored gift preferences response from {friend_name}")
+                   elif is_preferences_response and not (friend_name_lower in friend_interface.preferences and friend_interface.preferences[friend_name_lower] is not None):
+                       # Store as preferences and call Amazon API
+                       amazon_result = await friend_interface.store_preferences(friend_name, item.text)
+                       ctx.logger.info(f"Stored preferences response from {friend_name}")
+                       
+                       # Send Amazon results to user if we got them
+                       if amazon_result:
+                           amazon_message = create_text_chat(amazon_result)
+                           # Send to original user, not the friend agent
+                           if friend_interface.original_user:
+                               await ctx.send(friend_interface.original_user, amazon_message)
+                               ctx.logger.info(f"🔍 DEBUG: Sent Amazon results to original user: {friend_interface.original_user}")
+                           else:
+                               ctx.logger.info(f"🔍 DEBUG: No original user found, cannot send Amazon results")
                    else:
-                       # Generic response, try to determine type
-                       friend_interface.handle_friend_response(friend_name, item.text, "general")
-                       ctx.logger.info(f"Stored general response from {friend_name}")
+                       # Already have this type or unclear classification
+                       ctx.logger.info(f"Already have this response type from {friend_name} or unclear classification")
                
-               # Send acknowledgment
-               response_message = create_text_chat("Thank you for the information! I'll use this to find the perfect gift.")
-               await ctx.send(sender, response_message)
+               # Don't send acknowledgment to friend agents to avoid spam loops
+               continue
            else:
                # Regular user message
                try:
+                   # Store the original user address for gift requests
+                   if any(name in item.text.lower() for name in ["devam", "parth", "sakshi"]):
+                       friend_interface.original_user = sender
+                       ctx.logger.info(f"🔍 DEBUG: Stored original user address: {sender}")
+                   
                    # Process user input through conversation flow with context
                    response_text = await conversation_manager.process_user_input(sender, item.text, ctx)
                    
@@ -128,6 +190,8 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
        # Catches anything unexpected
        else:
            ctx.logger.info(f"Received unexpected content type from {sender}")
+           ctx.logger.info(f"🔍 DEBUG: Unexpected content type: {type(item)}")
+           ctx.logger.info(f"🔍 DEBUG: Content: {item}")
 
 
 # Handle acknowledgements for messages this agent has sent out
@@ -138,6 +202,15 @@ async def handle_acknowledgement(ctx: Context, sender: str, msg: ChatAcknowledge
 
 # Include the chat protocol and publish the manifest to Agentverse
 agent.include(chat_proto, publish_manifest=True)
+
+# Add a startup delay to prevent immediate communication
+@agent.on_event("startup")
+async def startup_handler(ctx: Context):
+    ctx.logger.info("🎁 Gift Expert Agent is starting up...")
+    ctx.logger.info("⏳ Waiting 5 seconds to prevent startup communication...")
+    import asyncio
+    await asyncio.sleep(5)
+    ctx.logger.info("✅ Agent is ready to receive messages!")
 
  
 if __name__ == "__main__":

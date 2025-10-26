@@ -48,7 +48,9 @@ class ConversationFlowManager:
         if any(phrase in user_input.lower() for phrase in [
             "i am devam", "i am parth", "i am sakshi", 
             "as devam", "as parth", "as sakshi",
-            "my personality", "my essence", "my core being"
+            "my personality", "my essence", "my core being",
+            "devam is glad", "agent-devam", "calm and balanced",
+            "gentle", "empathetic", "nature-guided"
         ]):
             # This is a response from a friend agent, don't process it
             return "🎁 Thank you for the information! I'll use this to find the perfect gift."
@@ -59,10 +61,29 @@ class ConversationFlowManager:
         
         for friend_name in friend_names:
             if friend_name in user_input_lower:
+                
+                # Check if this is a check command
+                if "check" in user_input_lower and friend_name in user_input_lower:
+                    from friend_interface import friend_interface
+                    personality = friend_interface.get_personality(friend_name)
+                    preferences = friend_interface.get_preferences(friend_name)
+                    
+                    if personality or preferences:
+                        response_text = f"🔍 **Responses from {friend_name.title()}'s agent:**\n\n"
+                        if personality:
+                            response_text += f"**Personality:** {personality}\n\n"
+                        if preferences:
+                            response_text += f"**Preferences:** {preferences}\n\n"
+                        return response_text
+                    else:
+                        return f"❌ No responses received from {friend_name.title()}'s agent yet."
+                
                 # Route to friend interface
                 from friend_interface import friend_interface
                 if ctx is None:
                     return f"❌ Cannot communicate with {friend_name.title()}'s agent - no context available. Please try again."
+                
+                # Send messages and return status
                 return await friend_interface.communicate_with_friend(friend_name, ctx)
         
         # Process regular conversation flow
