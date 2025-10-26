@@ -44,6 +44,15 @@ class ConversationFlowManager:
         """
         Process user input and return appropriate response
         """
+        # Check if this is a response from a friend agent (prevent infinite loop)
+        if any(phrase in user_input.lower() for phrase in [
+            "i am devam", "i am parth", "i am sakshi", 
+            "as devam", "as parth", "as sakshi",
+            "my personality", "my essence", "my core being"
+        ]):
+            # This is a response from a friend agent, don't process it
+            return "🎁 Thank you for the information! I'll use this to find the perfect gift."
+        
         # Check if user mentioned a friend's name
         friend_names = ["devam", "parth", "sakshi"]
         user_input_lower = user_input.lower()

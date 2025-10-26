@@ -15,6 +15,7 @@ from uagents_core.contrib.protocols.chat import (
 from conversation_flow import ConversationFlowManager
 from global_memory import global_memory
 from models import ConversationState
+from friend_interface import friend_interface
 
 
 agent = Agent(
@@ -70,21 +71,53 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
        elif isinstance(item, TextContent):
            ctx.logger.info(f"Text message from {sender}: {item.text}")
            
-           try:
-               # Process user input through conversation flow with context
-               response_text = await conversation_manager.process_user_input(sender, item.text, ctx)
+           # Check if this is a response from a friend agent
+           friend_agent_addresses = list(friend_interface.agent_addresses.values())
+           if sender in friend_agent_addresses:
+               # This is a response from a friend agent
+               ctx.logger.info(f"Received response from friend agent: {sender}")
                
-               # Create and send response
-               response_message = create_text_chat(response_text)
+               # Determine which friend this is based on sender address
+               friend_name = None
+               for name, address in friend_interface.agent_addresses.items():
+                   if address == sender:
+                       friend_name = name
+                       break
+               
+               if friend_name:
+                   # Determine response type based on content
+                   response_text = item.text.lower()
+                   if "personality" in response_text or "i am" in response_text or "my personality" in response_text:
+                       friend_interface.handle_friend_response(friend_name, item.text, "personality")
+                       ctx.logger.info(f"Stored personality response from {friend_name}")
+                   elif "gift" in response_text or "materialistic" in response_text or "enjoy" in response_text:
+                       friend_interface.handle_friend_response(friend_name, item.text, "gift_preferences")
+                       ctx.logger.info(f"Stored gift preferences response from {friend_name}")
+                   else:
+                       # Generic response, try to determine type
+                       friend_interface.handle_friend_response(friend_name, item.text, "general")
+                       ctx.logger.info(f"Stored general response from {friend_name}")
+               
+               # Send acknowledgment
+               response_message = create_text_chat("Thank you for the information! I'll use this to find the perfect gift.")
                await ctx.send(sender, response_message)
-               
-           except Exception as e:
-               ctx.logger.error(f"Error processing message: {str(e)}")
-               error_message = create_text_chat(
-                   "I apologize, but I encountered an error processing your request. "
-                   "Please try again or rephrase your message."
-               )
-               await ctx.send(sender, error_message)
+           else:
+               # Regular user message
+               try:
+                   # Process user input through conversation flow with context
+                   response_text = await conversation_manager.process_user_input(sender, item.text, ctx)
+                   
+                   # Create and send response
+                   response_message = create_text_chat(response_text)
+                   await ctx.send(sender, response_message)
+                   
+               except Exception as e:
+                   ctx.logger.error(f"Error processing message: {str(e)}")
+                   error_message = create_text_chat(
+                       "I apologize, but I encountered an error processing your request. "
+                       "Please try again or rephrase your message."
+                   )
+                   await ctx.send(sender, error_message)
 
        # Marks the end of a chat session
        elif isinstance(item, EndSessionContent):
