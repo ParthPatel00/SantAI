@@ -512,19 +512,39 @@ class ConversationFlowManager:
         response = f"🎉 **I found some amazing {category.lower()} gifts for {occasion}!**\n\n"
         response += "I've carefully selected these based on what you told me. Here are my top 5 recommendations:\n\n"
         
+        # Import payment service
+        try:
+            from payment_service import payment_service
+            payment_enabled = True
+        except ImportError:
+            payment_enabled = False
+        
         for i, rec in enumerate(context.current_recommendations, 1):
             response += f"**{i}. {rec.gift.name}**\n"
             response += f"   💰 **Price:** {rec.gift.price}\n"
             response += f"   📝 **Description:** {rec.gift.description}\n"
             response += f"   🏪 **Available at:** {rec.gift.source}\n"
-            response += f"   💡 **Why I think you'll love it:** {rec.reason}\n\n"
+            response += f"   💡 **Why I think you'll love it:** {rec.reason}\n"
+            
+            # Add buy link if payment service is available
+            if payment_enabled:
+                try:
+                    payment_url = payment_service.create_payment_link(rec.gift.to_dict(), context.user_id)
+                    response += f"   🛒 **Buy Now:** {payment_url}\n"
+                except Exception as e:
+                    # If payment service fails, continue without buy link
+                    pass
+            
+            response += "\n"
         
         response += "**What would you like to do?**\n"
         response += "• **Pick a number (1-5)** to choose your favorite! 🎯\n"
         response += "• **Say 'show more options'** to see additional gifts 🔄\n"
         response += "• **Tell me to 'update preferences'** if you want to change something 🔧\n"
-        response += "• **Ask me anything** about these gifts! I'm here to help! 💬\n\n"
-        response += "I'm so excited to see which one catches your eye! What do you think? 😊"
+        response += "• **Ask me anything** about these gifts! I'm here to help! 💬\n"
+        if payment_enabled:
+            response += "• **Click any 'Buy Now' link** to purchase directly! 💳\n"
+        response += "\nI'm so excited to see which one catches your eye! What do you think? 😊"
         
         context.add_message("assistant", response)
         return response
