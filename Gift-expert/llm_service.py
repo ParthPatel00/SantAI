@@ -70,7 +70,10 @@ class LLMService:
         IMPORTANT: 
         - If user says "for my brother/sister/mother/father/etc", extract that as recipient
         - If user says "for my boss/friend/girlfriend/etc", extract that as recipient
-        - Only extract preferences if user mentions specific interests/hobbies
+        - Extract occasion when user mentions "for her birthday", "for his anniversary", "for Christmas", "for graduation", etc.
+        - Extract preferences when user mentions interests like "likes sports", "loves cooking", "enjoys hiking", "into technology", etc.
+        - Look for patterns like "he likes", "she loves", "enjoys", "into", "interested in"
+        - Look for occasion patterns like "for her birthday", "for his anniversary", "for Christmas", "for graduation"
         - Do NOT use example text as preferences
         - Look for patterns like "for my [person]" or "for [person]" to identify recipient
         
@@ -81,9 +84,17 @@ class LLMService:
         - User: "gift for my sister"
         - Return: {{"occasion": null, "recipient": "sister", "preferences": null, "budget_min": null, "budget_max": null}}
         
+        - Current: {{"occasion": null, "recipient": null, "preferences": null, "budget_min": null, "budget_max": null}}
+        - User: "I want to buy a gift for my sister for her birthday"
+        - Return: {{"occasion": "birthday", "recipient": "sister", "preferences": null, "budget_min": null, "budget_max": null, "missing_info": ["preferences", "budget_min", "budget_max"]}}
+        
         - Current: {{"occasion": "graduation", "recipient": "sister", "preferences": null, "budget_min": null, "budget_max": null}}
         - User: "she likes hiking"
         - Return: {{"occasion": null, "recipient": null, "preferences": "hiking", "budget_min": null, "budget_max": null}}
+        
+        - Current: {{"occasion": "anniversary", "recipient": "brother", "preferences": null, "budget_min": null, "budget_max": null}}
+        - User: "He likes sports, and my budget is between 100 - 200"
+        - Return: {{"occasion": null, "recipient": null, "preferences": "sports", "budget_min": 100, "budget_max": 200, "missing_info": []}}
         
         - Current: {{"occasion": "graduation", "recipient": "sister", "preferences": "hiking", "budget_min": null, "budget_max": null}}
         - User: "budget is 100-200"

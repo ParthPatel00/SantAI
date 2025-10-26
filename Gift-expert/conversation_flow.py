@@ -40,22 +40,23 @@ class ConversationFlowManager:
         # Process initial input
         return await self.process_user_input(user_id, initial_input)
     
-    async def process_user_input(self, user_id: str, user_input: str) -> str:
+    async def process_user_input(self, user_id: str, user_input: str, ctx=None) -> str:
         """
         Process user input and return appropriate response
         """
-        # Check for gift-sending commands first
-        gift_sending_response = await self._handle_gift_sending_command(user_input)
-        if gift_sending_response:
-            return gift_sending_response
+        # Check if user mentioned a friend's name
+        friend_names = ["devam", "parth", "sakshi"]
+        user_input_lower = user_input.lower()
         
-        # Check if user is selecting a gift for sending (look for number patterns)
-        import re
-        if re.search(r'^\d+$', user_input.strip()):
-            # User entered just a number, check if we have stored gift recommendations
-            gift_selection_response = await self._handle_gift_selection_for_sending(user_input)
-            if gift_selection_response:
-                return gift_selection_response
+        for friend_name in friend_names:
+            if friend_name in user_input_lower:
+                # Route to friend interface
+                from friend_interface import friend_interface
+                if ctx is None:
+                    return f"❌ Cannot communicate with {friend_name.title()}'s agent - no context available. Please try again."
+                return await friend_interface.communicate_with_friend(friend_name, ctx)
+        
+        # Process regular conversation flow
         
         context = global_memory.get_user_context(user_id)
         if not context:

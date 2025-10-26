@@ -71,8 +71,8 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
            ctx.logger.info(f"Text message from {sender}: {item.text}")
            
            try:
-               # Process user input through conversation flow
-               response_text = await conversation_manager.process_user_input(sender, item.text)
+               # Process user input through conversation flow with context
+               response_text = await conversation_manager.process_user_input(sender, item.text, ctx)
                
                # Create and send response
                response_message = create_text_chat(response_text)
