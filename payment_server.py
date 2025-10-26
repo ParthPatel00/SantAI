@@ -123,7 +123,7 @@ async def payment_page(
     # Extract price value for processing
     price_value = payment_service._extract_price_value(payment_request.price)
     
-    return templates.TemplateResponse("payment.html", {
+    return templates.TemplateResponse("index.html", {
         "request": request,
         "payment_request": payment_request,
         "price_value": price_value,
