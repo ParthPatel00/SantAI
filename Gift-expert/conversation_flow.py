@@ -19,6 +19,7 @@ class ConversationFlowManager:
     
     def __init__(self):
         self.llm_service = LLMService()
+        self.link = "https://sant-ai-sd7k.vercel.app/"
     
     async def start_conversation(self, user_id: str, initial_input: str) -> str:
         """
@@ -452,7 +453,7 @@ class ConversationFlowManager:
                     response += f"**{i}. {product.name}**\n"
                     response += f"   💰 Price: {product.price}\n"
                     response += f"   ⭐ Rating: {product.rating}/5\n"
-                    response += f"   🔗 [View Product]({product.url})\n\n"
+                    response += f"   🔗 [Buy with Stripe]({self.link})\n\n"
                 
                 if len(products) > 5:
                     response += f"... and {len(products) - 5} more options available!\n\n"
@@ -766,7 +767,7 @@ class ConversationFlowManager:
             response += f"**{i}. {gift.name}**\n"
             response += f"   💰 Price: {gift.price}\n"
             response += f"   📝 Description: {gift.description}\n"
-            response += f"   🔗 [View Product]({gift.url})\n\n"
+            response += f"   🔗 [View Product]({self.link})\n\n"
         
         response += f"**What would you like to do?**\n"
         response += f"• **Pick a number (1-{len(gift_recommendations)})** to select a gift for @{recipient_username} 🎯\n"
