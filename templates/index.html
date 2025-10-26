@@ -42,10 +42,10 @@
                             <span class="text-white text-2xl">🎁</span>
                         </div>
                         <div class="flex-1">
-                            <h3 class="font-semibold text-gray-900">{{ payment_request.gift_name }}</h3>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment_request.description }}</p>
+                            <h3 class="font-semibold text-gray-900">{{STMT Positivity Journaling Set, Includes Over 1500 Supplies, Self Care, Guided, Daily Journal, Great Gifts }}</h3>
+                            <p class="text-sm text-gray-600 mt-1">{{ Delivery: FREE delivery Fri, Oct 31 }}</p>
                             <div class="mt-2">
-                                <span class="text-lg font-bold text-green-600">{{ payment_request.price }}</span>
+                                <span class="text-lg font-bold text-green-600">{{ $25.01 }}</span>
                             </div>
                         </div>
                     </div>
@@ -54,7 +54,7 @@
                 <div class="border-t pt-4 mt-6">
                     <div class="flex justify-between items-center">
                         <span class="text-lg font-semibold text-gray-900">Total</span>
-                        <span class="text-xl font-bold text-green-600">{{ payment_request.price }}</span>
+                        <span class="text-xl font-bold text-green-600">{{ $25.01 }}</span>
                     </div>
                 </div>
 
@@ -170,7 +170,7 @@
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
-                            <span>Complete Payment - {{ payment_request.price }}</span>
+                            <span>Complete Payment - {$25.01}</span>
                         </div>
                     </button>
                 </form>
