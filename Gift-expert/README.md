@@ -1,14 +1,14 @@
 # 🎁 Santa Agent - The Ultimate Gift Recommendation System
 
-**Transform gift-giving with AI-powered agent-to-agent communication that finds the perfect present every time!**
+**Agent Santa uses AI agents to find perfect gifts by asking your friends' personal AI what they actually want.**
 
-SantAI revolutionizes how we discover and select gifts by connecting with your friends' personal AI agents to understand their true preferences, then finding real Amazon products that match perfectly. No more guessing games or generic gifts - just thoughtful, personalized recommendations every time.
+Santa Agent revolutionizes gift-giving by connecting with your friends' personal AI agents to understand their true preferences, then finding real Amazon products that match perfectly. No more guessing games or generic gifts - just thoughtful, personalized recommendations every time.
 
-## 🌟 What Makes SantAI Special?
+## 🌟 What Makes Santa Agent Special?
 
 ### 🤖 **Revolutionary Agent-to-Agent Communication**
 
-SantAI doesn't just guess what someone might like - it **actually asks their personal AI agent**! When you want to buy a gift for a friend, SantAI connects directly with their AI agent to learn about their personality, interests, and preferences in real-time.
+Santa Agent doesn't just guess what someone might like - it **actually asks their personal AI agent**! When you want to buy a gift for a friend, Santa Agent connects directly with their AI agent to learn about their personality, interests, and preferences in real-time.
 
 ### 🎯 **Perfect Gift Discovery**
 
@@ -24,7 +24,7 @@ SantAI doesn't just guess what someone might like - it **actually asks their per
 - **Discover unique gifts** - AI finds products you'd never think of
 - **Perfect for any occasion** - birthdays, anniversaries, holidays, or just because
 
-## 🚀 How It Works - The Magic Behind SantAI
+## 🚀 How It Works - The Magic Behind Santa Agent
 
 ### **Step 1: You Request a Gift**
 
@@ -32,7 +32,7 @@ Simply type: _"I want to buy a gift for Parth"_ or _"Find a gift for my friend D
 
 ### **Step 2: AI Agents Connect**
 
-SantAI automatically reaches out to your friend's personal AI agent and asks:
+Santa Agent automatically reaches out to your friend's personal AI agent and asks:
 
 - _"What's Parth's personality like?"_
 - _"What kind of gifts would Parth enjoy?"_
@@ -43,27 +43,27 @@ Your friend's AI agent responds with detailed insights about their personality a
 
 ### **Step 4: Smart Gift Search**
 
-SantAI uses this information to search Amazon for products that perfectly match your friend's interests and personality.
+Santa Agent uses this information to search Amazon for products that perfectly match your friend's interests and personality.
 
 ### **Step 5: Perfect Recommendations**
 
 You receive a curated list of real Amazon products with prices, descriptions, and direct purchase links.
 
-## 🎯 Real Examples - See SantAI in Action
+## 🎯 Real Examples - See Santa Agent in Action
 
 ### **Example 1: Birthday Gift for Your Adventurous Friend**
 
 ```
 You: "I need a gift for Parth's birthday"
 
-SantAI: "🎁 Getting gift recommendations for Parth..."
+Santa Agent: "🎁 Getting gift recommendations for Parth..."
 
 [Connects to Parth's AI agent]
 
 Parth's AI: "Parth loves outdoor sports, adventure gear, and fitness equipment.
 He enjoys high-energy activities and competitive environments."
 
-SantAI: "🎁 Gift Recommendations for Parth
+Santa Agent: "🎁 Gift Recommendations for Parth
 
 Based on preferences: Outdoor sports, adventure gear, fitness equipment...
 
@@ -86,14 +86,14 @@ Recommended Gifts:
 ```
 You: "Find something special for Sakshi's anniversary"
 
-SantAI: "🎁 Getting gift recommendations for Sakshi..."
+Santa Agent: "🎁 Getting gift recommendations for Sakshi..."
 
 [Connects to Sakshi's AI agent]
 
 Sakshi's AI: "Sakshi is artistic, loves handmade crafts, and enjoys
 creative tools. She values unique, thoughtful gifts."
 
-SantAI: "🎁 Gift Recommendations for Sakshi
+Santa Agent: "🎁 Gift Recommendations for Sakshi
 
 Based on preferences: Artistic, handmade crafts, creative tools...
 
@@ -120,7 +120,7 @@ Recommended Gifts:
 - ❌ **Wasted money** - Buying things they'll never use
 - ❌ **Time consuming** - Hours of research for mediocre results
 
-### **SantAI's Agent-to-Agent Solution:**
+### **Santa Agent's Agent-to-Agent Solution:**
 
 - ✅ **Direct insight** - Their AI agent knows them better than anyone
 - ✅ **Personalized discovery** - Gifts that match their true personality
@@ -152,6 +152,8 @@ Recommended Gifts:
 - Surprise your friends with unexpected thoughtful presents
 - Random acts of kindness with perfectly chosen gifts
 - Celebration gifts for achievements and milestones
+
+## 🚀 Getting Started - It's Incredibly Easy
 
 ### **1. Start Shopping**
 
